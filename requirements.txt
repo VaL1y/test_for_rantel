@@ -2,5 +2,8 @@ fastapi
 uvicorn[standard]
 sqlalchemy>=2.0
 asyncpg
+psycopg[binary]
 redis>=5
 python-dotenv
+alembic
+pydantic[email]
