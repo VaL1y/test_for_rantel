@@ -19,11 +19,3 @@ DATABASE_URL = os.getenv(
     f"postgresql+asyncpg://{POSTGRES_USER}:{POSTGRES_PASSWORD}"
     f"@{POSTGRES_HOST}:{POSTGRES_PORT}/{POSTGRES_DB}"
 )
-
-VALID_TRANSITIONS = {
-    TicketStatus.new: {TicketStatus.in_progress, TicketStatus.resolved, TicketStatus.closed},
-    TicketStatus.in_progress: {TicketStatus.waiting, TicketStatus.resolved, TicketStatus.closed},
-    TicketStatus.waiting: {TicketStatus.in_progress, TicketStatus.resolved, TicketStatus.closed},
-    TicketStatus.resolved: {TicketStatus.closed},
-    TicketStatus.closed: set(),
-}

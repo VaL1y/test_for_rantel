@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import VALID_TRANSITIONS
 from app.db.postgres import get_db
 from app.models.ticket import Ticket
 from app.models.client import Client
@@ -13,6 +12,7 @@ from app.schemas.ticket import (
     TicketOut,
     TicketStatusUpdate,
 )
+from app.services.assignment import create_ticket_with_assignment, transition_ticket
 
 router = APIRouter(prefix="/tickets", tags=["Tickets"])
 
@@ -25,14 +25,12 @@ async def create_ticket(
     if not client:
         raise HTTPException(404, "Client not found")
 
-    ticket = Ticket(
+    ticket = await create_ticket_with_assignment(
+        session,
         client_id=data.client_id,
         subject=data.subject,
         priority=data.priority,
-        status=TicketStatus.new,
     )
-
-    session.add(ticket)
     await session.commit()
     await session.refresh(ticket)
     return ticket
@@ -103,17 +101,14 @@ async def change_status(
     data: TicketStatusUpdate,
     session: AsyncSession = Depends(get_db),
 ):
-    ticket = await session.get(Ticket, ticket_id)
-    if not ticket:
-        raise HTTPException(404, "Ticket not found")
-
-    if data.status not in VALID_TRANSITIONS[ticket.status]:
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid transition from {ticket.status} to {data.status}",
+    try:
+        ticket = await transition_ticket(
+            session,
+            ticket_id,
+            data.status,
         )
-
-    ticket.status = data.status
+    except ValueError as e:
+        raise HTTPException(400, str(e))
 
     await session.commit()
     await session.refresh(ticket)
